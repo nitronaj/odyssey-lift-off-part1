@@ -1,49 +1,55 @@
-const gql = require('graphql-tag');
+const { ApolloServer } = require('@apollo/server');
+const { startStandaloneServer } = require('@apollo/server/standalone');
+const { addMocksToSchema } = require('@graphql-tools/mock');
+const { makeExecutableSchema } = require('@graphql-tools/schema');
 
-const typeDefs = gql`
-  type Query {
-    "Get tracks array for homepage grid"
-    tracksForHome: [Track!]!
-    "Get array of spacecats"
-    spaceCats: [SpaceCat]
-  }
+const typeDefs = require('./schema');
 
-  "A track is a group of Modules that teaches about a specific topic"
-  type Track {
-    id: ID!
-    "The track's title"
-    title: String!
-    "The track's main author"
-    author: Author!
-    "The track's main illustration to display in track card or track page detail"
-    thumbnail: String
-    "The track's approximate length to complete, in minutes"
-    length: Int
-    "The number of modules this track contains"
-    moduleCounts: Int
-  }
+const mocks = {
+  Query: () => ({
+    tracksForHome: () => [...new Array(6)],
+    spaceCats: () => [...new Array(2)],
+  }),
+  Track: () => ({
+    id: () => 'track_01',
+    title: () => 'Astro Kitty, Space Explorer',
+    author: () => {
+      return {
+        name: 'Grumpy Cat',
+        photo: 'https://res.cloudinary.com/dety84pbu/image/upload/v1606816219/kitty-veyron-sm_mctf3c.jpg',
+      };
+    },
+    thumbnail: () => 'https://res.cloudinary.com/dety84pbu/image/upload/v1598465568/nebula_cat_djkt9r.jpg',
+    length: () => 1210,
+    modulesCount: () => 6,
+  }),
+  SpaceCat: () => ({
+    id: () => 'spacecat_01',
+    title: () => 'spacecat pioneer',
+    age: 26,
+    missions: () => [...new Array(1)],
+  }),
 
-  "Author of a complete Track or a Module"
-  type Author {
-    id: ID!
-    "Author's first and last name"
-    name: String!
-    "Author's profile picture url"
-    photo: String
-  }
+  Mission: () => ({
+    id: 'mission_01',
+    name: () => 'Mission impossible',
+    description: () => 'Travel to the moon',
+  }),
+};
 
-  type SpaceCat {
-    id: ID!
-    name: String!
-    age: Int
-    missions: [Mission]
-  }
+async function startApolloServer() {
+  const server = new ApolloServer({
+    schema: addMocksToSchema({
+      schema: makeExecutableSchema({ typeDefs }),
+      mocks,
+    }),
+  });
+  const { url } = await startStandaloneServer(server);
 
-  type Mission {
-    id: ID!
-    name: String!
-    description: String!
-  }
-`;
+  console.log(`
+    🚀  Server is running!
+    📭  Query at ${url}
+  `);
+}
 
-modules.exports = typeDefs;
+startApolloServer();
